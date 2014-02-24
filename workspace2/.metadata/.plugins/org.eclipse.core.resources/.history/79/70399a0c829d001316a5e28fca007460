@@ -1,0 +1,58 @@
+package com.test1.servlets;
+
+import java.io.IOException;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Cookie;
+
+import com.datastax.driver.core.Cluster;
+
+import com.test1.lib.*;
+import com.test1.models.*;
+import com.test1.stores.*;
+
+/**
+ * Servlet implementation class User
+ */
+@WebServlet({ "/Install", "/Install/*" })
+public class Install extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+    private Cluster cluster;
+    
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public Install() {
+        super();
+    }
+    
+    public void init(ServletConfig config) throws ServletException {
+		cluster = CassandraHosts.getCluster();
+	}
+    
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		InstallModel im = new InstallModel();
+		im.setCluster(cluster);
+	
+		if(im.createKeyspace()) {
+			
+		}
+		
+		if(im.createUserTable()) {
+				
+		}
+		
+		if(im.createTweetTable()) {
+				
+		}
+	}
+}

@@ -1,0 +1,183 @@
+$(function(){
+	
+	var tweet_memory = [];
+	var tweet_last = "";
+	
+	function parseTwitterJSON(twitter_json) {
+		var html = "";
+    	
+    	for(var i=0; i<twitter_json.length; i++) {
+    		
+    		html += "<div class=\"panel panel-default\">"
+						+"<div class=\"panel-body\">"
+							+"<h4><a href=\"/test1/Tweet/"+twitter_json[i].user+"\" >"+twitter_json[i].message+"</a></h4>"
+							+"<span class=\"help-block\">"
+								+"by <span class=\"user\">"+twitter_json[i].user+"</span> ~ "
+								+"<span class=\"tweetTime\" data-tweet-time=\""+twitter_json[i].tweet_time_js_readable+"\">" +
+									+""+twitter_json[i].tweet_time+""
+								+"</span>"
+							+"</span>"
+						+"</div>"
+					+"</div>";
+    	}
+    	
+    	$(".tweet-list-continer").prepend(html);
+	}
+	
+	function updateStream() {
+		
+		var data = {
+			"api":"true"
+		};
+		
+		if ( tweet_last != "" ) {
+			data.from = tweet_last;
+		}
+		
+        $.ajax({
+            type: "GET",
+            url: "/test1/Tweet/",
+            data: data,
+            cache: false,
+            dataType: "json",
+            success: function(data){
+            	
+            	
+            	
+                //console.debug(data);
+                if(data === "true"){ 
+                	$(".easy-form-spout-textarea").val("");
+                	$(".easy-form-spout-btn").show();
+                	$(".easy-form-spout-loader").hide();
+                	//$('#result').html("<span style='color:green;font-weight:bold'>Subscribed!</span>");
+                }else{
+                	/*var error_report = "";
+                	for (var key in data) {
+                		error_report += data[key]+"<br/>";
+            		}
+                	if ( error_report == "" ) {
+                		$('#result').html("<span style='color:red;font-weight:bold'>Please try again later!</span>");
+                	} else {
+                		$('#result').html("<span style='color:red;font-weight:bold'>"+error_report+"</span>");
+                	}*/
+                }
+            },
+            error: function( jqXHR, textStatus, errorThrown) {
+            	$(".easy-form-spout").addClass("has-warning");
+            	$(".easy-form-spout-btn").show();
+            	$(".easy-form-spout-loader").hide();
+            }
+        });
+		
+	}
+	
+	$(".easy-form-spout-btn").click(function(event){
+		
+		event.preventDefault();
+		
+		var spout = $(".easy-form-spout-textarea").val();
+		spout = $.trim(spout);
+
+		var data = {
+			spout: spout
+        };
+
+        var error = false;
+
+        $(".easy-form-spout").removeClass("has-error");
+        $(".easy-form-spout").removeClass("has-warning");
+        $(this).hide(); 
+        $(".easy-form-spout-loader").show();
+        
+        //$('#result').html("");
+
+		if ( spout == null || spout.length == 0 || spout.length > 140 ) {
+			
+			error = true;
+			//return false;
+		}
+
+        if ( error ) {
+        	$(".easy-form-spout").addClass("has-error");
+        	$(this).show();
+        	$(".easy-form-spout-loader").hide();
+            //$('#result').html("<span style='color:red;font-weight:bold'>Please fill the highlighted fields!</span>");
+            return true;
+        }
+
+        // loading ...
+        //$('#result').html("<span style='color:blue;font-weight:bold'>Signing up...</span>");
+
+        $.ajax({
+            type: "PUT",
+            url: "/test1/Tweet/",
+            data: data,
+            cache: false,
+            //dataType: "json",
+            dataType: "html",
+            success: function(data){
+                //console.debug(data);
+                if(data === "true"){ 
+                	$(".easy-form-spout-textarea").val("");
+                	$(".easy-form-spout-btn").show();
+                	$(".easy-form-spout-loader").hide();
+                	//$('#result').html("<span style='color:green;font-weight:bold'>Subscribed!</span>");
+                }else{
+                	/*var error_report = "";
+                	for (var key in data) {
+                		error_report += data[key]+"<br/>";
+            		}
+                	if ( error_report == "" ) {
+                		$('#result').html("<span style='color:red;font-weight:bold'>Please try again later!</span>");
+                	} else {
+                		$('#result').html("<span style='color:red;font-weight:bold'>"+error_report+"</span>");
+                	}*/
+                }
+            },
+            error: function( jqXHR, textStatus, errorThrown) {
+            	$(".easy-form-spout").addClass("has-warning");
+            	$(".easy-form-spout-btn").show();
+            	$(".easy-form-spout-loader").hide();
+            }
+        });
+	});
+	
+	$(".tweetTime").each(function(){
+		$(this).html(updateDateFormat($(this).attr("data-tweet-time")));
+	});
+	
+	setInterval(
+		function() {
+			$(".tweetTime").each(function(){
+				$(this).html(updateDateFormat($(this).attr("data-tweet-time")));
+			});
+		},
+		5000
+	);
+	
+	function updateDateFormat(tweet_time){
+		var now = new Date();
+		var tweet_time_arr = tweet_time.split("-");
+		date_tweet_time = new Date(
+			tweet_time_arr[0],
+			(tweet_time_arr[1]-1),
+			tweet_time_arr[2],
+			tweet_time_arr[3],
+			tweet_time_arr[4],
+			tweet_time_arr[5]
+		);
+		var difference = now.valueOf() - date_tweet_time.valueOf();
+		var difference_in_seconds = parseInt(difference / 1000);
+
+		if ( difference_in_seconds < 60 ) {
+			return difference_in_seconds+" seconds ago";
+		} else if ( difference_in_seconds < (60 * 60) ) {
+			return parseInt(difference_in_seconds / 60)+" minutes ago";
+		} else if ( difference_in_seconds < (60 * 60 * 12) ) {
+			return parseInt(difference_in_seconds / (60 * 60))+" hours ago";
+		} else {
+			return date_tweet_time.format("HH:MM mmm dd");
+		}
+	}
+	
+});

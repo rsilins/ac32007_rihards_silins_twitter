@@ -1,0 +1,197 @@
+package com.test1.servlets;
+
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.HashMap;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import java.net.URLDecoder;
+
+import com.datastax.driver.core.Cluster;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+
+import com.test1.lib.*;
+import com.test1.models.*;
+import com.test1.stores.*;
+
+/**
+ * Servlet implementation class Tweet
+ */
+@WebServlet({ "/Tweet", "/Tweet/*" })
+public class Tweet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+    private Cluster cluster;
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public Tweet() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+    public void init(ServletConfig config) throws ServletException {
+		// TODO Auto-generated method stub
+		cluster = CassandraHosts.getCluster();
+	}
+    
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+		boolean viewing_user_tweets = false;
+		boolean viewing_specific_tweet = false;
+		boolean viewing_my_feed = true;
+		String viewing_user_tweets_username = "";
+		String viewing_specific_tweet_uuid = "";
+		
+		if ( request.getPathInfo() != null ) {
+			if ( request.getPathInfo().matches("/[A-Za-z0-9]+") ) {
+				viewing_user_tweets_username = request.getPathInfo().replaceAll("/","");
+				viewing_user_tweets = true;
+				viewing_my_feed = false;
+				System.out.print("viewing_user_tweets");
+			} else if ( request.getPathInfo().matches("/[A-Za-z0-9-]+") ) {
+				viewing_specific_tweet_uuid = request.getPathInfo().replaceAll("/","");
+				viewing_specific_tweet = true;
+				viewing_my_feed = false;
+				System.out.print("viewing_specific_tweet");
+			} else {
+				System.out.print("viewing_my_feed");
+			}
+		}
+		
+		UserStore logged_in_user = new UserStore();
+		
+		Authentication auth = new Authentication();
+		if ( auth.isLoggedIn(request) ) {
+			UserModel um = new UserModel();
+			um.setCluster(cluster);
+			logged_in_user = um.getUserFromUsername(auth.getLoggedInUser(request));
+			request.setAttribute("logged_in", true);
+			request.setAttribute("logged_in_user", logged_in_user); 
+		} else {
+			request.setAttribute("logged_in", false); 
+		}
+		
+		TweetModel tm= new TweetModel();
+		tm.setCluster(cluster);
+		
+		LinkedList<TweetStore> tweetList;
+		
+		if ( viewing_user_tweets && request.getParameter("from")!= null) {
+			tweetList = tm.getTweets(request.getParameter("from"), "'"+request.getPathInfo().replaceAll("/","")+"'");
+		} else if ( viewing_user_tweets ) { 
+			tweetList = tm.getTweets("'"+request.getPathInfo().replaceAll("/","")+"'");
+		} else if ( request.getParameter("from")!= null ) {
+			tweetList = tm.getTweets(request.getParameter("from"), logged_in_user.getSubscribed());
+		} else {
+			tweetList = tm.getTweets(logged_in_user.getSubscribed());
+		}
+		
+		request.setAttribute("Tweets", tweetList); //Set a bean with the list in it
+		
+		if ( request.getParameter("api")!= null && request.getParameter("api").equals("true") ) {
+			RequestDispatcher rd = request.getRequestDispatcher("/views/Tweet/api_get.jsp"); 
+			rd.forward(request, response);
+		} else {
+			RequestDispatcher rd = request.getRequestDispatcher("/views/Tweet/view.jsp"); 
+			rd.forward(request, response);
+		}
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String spout = request.getParameter("spout");
+		// TODO: User check
+		if ( spout != null && spout.isEmpty() == false && spout.length() > 0 && spout.length() <= 140 ) {
+			
+			TweetStore ts = new TweetStore();
+			ts.setTweet(spout);
+			Cookie[] cookies = request.getCookies();
+			if( cookies != null ) {
+				for(Cookie cookie : cookies){
+					if(cookie.getName().equals("user")) {
+						ts.setUser(cookie.getValue());
+					}
+				}
+			}
+			TweetModel tm= new TweetModel();
+			tm.setCluster(cluster);
+			
+			tm.saveTweet(ts);
+			response.setStatus(200); 
+			response.getWriter().write("true");
+			this.doGet(request, response);
+		}
+		response.setStatus(500); 
+		response.getWriter().write("false");
+	}
+	
+	/**
+	 * @see HttpServlet#doPut(HttpServletRequest request, HttpServletResponse response)
+	 * 
+	 * Handles tweet (saving) put requests
+	 */
+	protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		
+		// for some reason you can't get put attributes from getParameter()
+		// probably because PUT is deprecated
+		BufferedReader br = new BufferedReader(new InputStreamReader(request.getInputStream()));
+		String data = br.readLine();
+		
+	    String[] params = data.split("&");  
+	    Map<String, String> map = new HashMap<String, String>();  
+	    for (String param : params) {  
+	        String name = param.split("=")[0];  
+	        String value = param.split("=")[1];  
+	        map.put(name, value);  
+	    }  
+	    
+		//String spout = request.getParameter("spout");
+		String spout = map.get("spout");
+		spout = URLDecoder.decode(spout, "UTF-8");
+		
+		// TODO: User check
+		
+		if ( spout != null && spout.isEmpty() == false && spout.length() > 0 && spout.length() <= 140 ) {
+			
+			TweetStore ts = new TweetStore();
+			ts.setTweet(spout);
+			
+			Cookie[] cookies = request.getCookies();
+			if( cookies != null ) {
+				for(Cookie cookie : cookies){
+					if(cookie.getName().equals("user")) {
+						ts.setUser(cookie.getValue());
+					}
+				}
+			}
+			TweetModel tm= new TweetModel();
+			tm.setCluster(cluster);
+			
+			tm.saveTweet(ts);
+			response.setStatus(200); 
+			response.getWriter().write("true");
+			return;
+		}
+		response.setStatus(500); 
+		response.getWriter().write("false");
+		return;
+	}
+	/**
+	 * @see HttpServlet#doDelete(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	}
+}

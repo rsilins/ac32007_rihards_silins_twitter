@@ -1,0 +1,106 @@
+package com.test1.models;
+
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Session;
+
+//import com.test1.lib.*;
+
+public class InstallModel {
+	Cluster cluster;
+	String keyspace;
+	public InstallModel(){
+		keyspace = "ac32007_rihardssilins";
+	}
+
+	public void setCluster(Cluster cluster){
+		this.cluster=cluster;
+	}
+	
+	public String getKeyspace(){
+		return keyspace;
+	}
+	
+	/**
+	 * InstallModel::createKeyspace()
+	 * Creates webapp keyspace
+	 * @param none
+	 * @return boolean success
+	 */
+	public boolean createKeyspace(){
+		String query = "create keyspace if not exists "+keyspace+" WITH replication = {'class':'SimpleStrategy', 'replication_factor':1}";
+		Session session = cluster.connect();
+		
+		try{
+			PreparedStatement statement = session.prepare(query);
+			BoundStatement boundStatement = new BoundStatement(statement);
+			session.execute(boundStatement);
+		}catch(Exception et){
+			System.out.println("Can't create keyspace "+keyspace+" error:"+et);
+			return false;
+		}
+		session.close();
+		return true;
+	}
+	
+	/**
+	 * InstallModel::createUserTable()
+	 * Creates users table
+	 * @param none
+	 * @return boolean success
+	 */
+	public boolean createUserTable(){
+		String query = ""
+			+ "CREATE TABLE "+keyspace+".users ("
+				+ "user varchar,"
+				+ "email varchar,"
+				+ "password varchar,"
+				+ "subscribed varchar,"
+				+ "followers int,"
+				+ "following int,"
+				+ "image varchar,"
+				+ "PRIMARY KEY (email, user)"
+			+ ");";
+		Session session = cluster.connect();
+		
+		try{
+			PreparedStatement statement = session.prepare(query);
+			BoundStatement boundStatement = new BoundStatement(statement);
+			session.execute(boundStatement);
+		}catch(Exception et){
+			System.out.println("Can't create users table "+et);
+			return false;
+		}
+		session.close();
+		return true;
+	}
+	
+	/**
+	 * InstallModel::createTweetTable()
+	 * Creates tweets table
+	 * @param none
+	 * @return boolean success
+	 */
+	public boolean createTweetTable(){
+		String query = ""
+			+ "CREATE TABLE "+keyspace+".tweets ("
+				+ "user varchar,"
+				+ "tweet varchar,"
+				+ "timeuuid timeuuid,"
+				+ "PRIMARY KEY (user,timeuuid)"
+			+ ") WITH CLUSTERING ORDER BY (timeuuid DESC);";
+		Session session = cluster.connect();
+		
+		try{
+			PreparedStatement statement = session.prepare(query);
+			BoundStatement boundStatement = new BoundStatement(statement);
+			session.execute(boundStatement);
+		}catch(Exception et){
+			System.out.println("Can't create tweets table "+et);
+			return false;
+		}
+		session.close();
+		return true;
+	}
+}

@@ -1,0 +1,30 @@
+<%@ page language="java" contentType="json; charset=utf-8" pageEncoding="utf-8"%><%@ page import="com.test1.stores.*" %><%@ 
+page import="java.util.*"%><%
+
+out.print("[");
+
+System.out.println("API GET! 3");
+
+List<TweetStore> lTweet = (List<TweetStore>)request.getAttribute("Tweets");
+
+if ( lTweet != null ) {
+	
+	Iterator<TweetStore> iterator;
+	iterator = lTweet.iterator();
+	boolean first = true;
+	while ( iterator.hasNext() ) {
+		TweetStore ts = (TweetStore)iterator.next();
+		
+		if ( first ) { first = false; } else { out.print(","); }
+		
+		%>{
+	"uuid":"<%=ts.getTimeuuid()%>",
+	"user":"<%=ts.getUser()%>",
+	"message":"<%=ts.getTweet().replaceAll("\"","\\\"")%>",
+	"tweet_time_js_readable":"<%=ts.getTweetTimeJSReadable()%>",
+	"tweet_time":"<%=ts.getTweetTime()%>"
+}<%
+	}
+}
+
+out.print("]");

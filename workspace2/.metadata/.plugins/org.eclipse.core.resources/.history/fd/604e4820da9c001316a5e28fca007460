@@ -1,0 +1,51 @@
+package com.test1.lib;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import com.test1.stores.UserStore;
+import com.test1.models.UserModel;
+import com.datastax.driver.core.Cluster;
+
+public class Authentication {
+
+	private Cluster cluster;
+
+    public void init() {
+		cluster = CassandraHosts.getCluster();
+	}
+    
+	public static boolean isLoggedIn(HttpServletRequest request) {
+		Cookie[] cookies = request.getCookies();
+		if( cookies != null ) {
+			for(Cookie cookie : cookies){
+				
+				System.out.print("NAME: '"+cookie.getName()+"'");
+				
+				if(cookie.getName().equals("user")) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	public static UserStore getLoggedInUser(HttpServletRequest request) {
+		UserStore us = new UserStore();
+		Cookie[] cookies = request.getCookies();
+		if( cookies != null ) {
+			for(Cookie cookie : cookies){
+				
+				System.out.print("NAME: '"+cookie.getName()+"'");
+				
+				if(cookie.getName().equals("user")) {
+					UserModel um = new UserModel();
+					um.setCluster(cluster);
+					us = um.getUserFromUsername(cookie.getValue());
+					return us;
+				}
+			}
+		}
+		return us;
+	}
+	
+}

@@ -1,0 +1,231 @@
+package com.test1.models;
+
+/*
+ * Expects a cassandra columnfamily defined as
+ * use keyspace2;
+  CREATE TABLE keyspace2.users (
+    user varchar,
+    email varchar,
+    password varchar,
+    PRIMARY KEY (email,user)
+  ) WITH CLUSTERING ORDER BY (user DESC);
+ * 
+ */
+
+import java.util.LinkedList;
+
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import org.jasypt.util.password.*;
+
+import com.test1.lib.*;
+import com.test1.stores.UserStore;
+
+public class UserModel {
+	Cluster cluster;
+	public UserModel(){}
+
+	public void setCluster(Cluster cluster){
+		this.cluster=cluster;
+	}
+  
+	public LinkedList<UserStore> getUsers() {
+	    LinkedList<UserStore> userList = new LinkedList<UserStore>();
+	    Session session = cluster.connect("keyspace2");
+	
+	    PreparedStatement statement = session.prepare("SELECT * from users");
+	    BoundStatement boundStatement = new BoundStatement(statement);
+	    ResultSet rs = session.execute(boundStatement);
+	    if (rs.isExhausted()) {
+	    	System.out.println("No Users returned");
+	    } else {
+	    	for (Row row : rs) {
+	    		UserStore ts = new UserStore();
+	    		ts.setEmail(row.getString("email"));
+	    		ts.setUser(row.getString("user"));
+	    		ts.setPassword(row.getString("password"));
+	    		userList.add(ts);
+	    	}
+	    }
+	    session.close();
+	    return userList;
+	}
+  
+	public UserStore getUser(String email) {
+		UserStore us = new UserStore();
+	  
+		Session session = cluster.connect("keyspace2");
+
+		PreparedStatement statement = session.prepare("SELECT * from users WHERE email = "+email+" LIMIT 1 ALLOW FILTERING");
+		BoundStatement boundStatement = new BoundStatement(statement);
+		ResultSet rs = session.execute(boundStatement);
+		if (rs.isExhausted()) {
+			System.out.println("No Users returned");
+		} else {
+			for (Row row : rs) {
+				us.setEmail(row.getString("email"));
+				us.setUser(row.getString("user"));
+				us.setPassword(row.getString("password"));
+				
+				us.setSubscribed(row.getString("subscribed"));
+				us.setImage(row.getString("image"));
+				us.setFollowers(row.getInt("followers"));
+				us.setFollowing(row.getInt("following"));
+			}
+		}
+		session.close();
+		return us;
+	}
+  
+	public UserStore getUserFromUsername(String username) {
+		
+		UserStore us = new UserStore();
+		Session session = cluster.connect("keyspace2");
+		String query = "SELECT * FROM users WHERE user = '"+username+"' ALLOW FILTERING";
+		PreparedStatement statement = session.prepare(query);   
+    	BoundStatement boundStatement = new BoundStatement(statement);
+    	ResultSet rs = session.execute(boundStatement);
+    	if (rs.isExhausted()){
+    		return us;
+    	} 
+    	
+    	for (Row row : rs) {
+    		us.setEmail(row.getString("email"));
+    		us.setUser(row.getString("user"));
+    		us.setPassword(row.getString("password"));
+		}
+
+    	return us;
+	}
+	
+	public boolean isEmailTaken(String email) {
+	  
+		Session session = cluster.connect("keyspace2");
+		String query = "SELECT user FROM users WHERE email = '"+email+"' ALLOW FILTERING";
+		//String query = "SELECT user FROM users WHERE email = 'tim'";
+		PreparedStatement statement = session.prepare(query);   
+    	BoundStatement boundStatement = new BoundStatement(statement);
+    	ResultSet rs = session.execute(boundStatement);
+    	if (rs.isExhausted()){
+    		return false;
+    	} 
+    	return true;
+	}
+	
+	public boolean isUsernameTaken(String username) {
+		  
+		Session session = cluster.connect("keyspace2");
+		String query = "SELECT user FROM users WHERE user = '"+username+"' ALLOW FILTERING";
+		PreparedStatement statement = session.prepare(query);   
+    	BoundStatement boundStatement = new BoundStatement(statement);
+    	ResultSet rs = session.execute(boundStatement);
+    	if (rs.isExhausted()){
+    		return false;
+    	} 
+    	return true;
+	}
+	
+	public UserStore login(String email, String password) {
+	
+		// Java Simplified Encryption
+		// Jasypt 1.9.1
+		// http://www.jasypt.org/
+		// http://www.jasypt.org/api/jasypt/1.9.1/index.html
+		ConfigurablePasswordEncryptor passwordEncryptor = new ConfigurablePasswordEncryptor();
+		passwordEncryptor.setAlgorithm("SHA-1");
+		passwordEncryptor.setPlainDigest(true);
+		String encryptedPassword = passwordEncryptor.encryptPassword(password);
+
+		encryptedPassword = passwordEncryptor.encryptPassword(password);
+
+		Session session = cluster.connect("keyspace2");
+		String query = "SELECT * FROM users WHERE email = '"+email+"' ALLOW FILTERING";
+		PreparedStatement statement = session.prepare(query);   
+    	BoundStatement boundStatement = new BoundStatement(statement);
+    	
+    	ResultSet rs = null;
+    	
+    	try {
+    		rs = session.execute(boundStatement);
+    	} catch ( Exception e ) {
+    		e.printStackTrace();
+    	}
+    	
+    	UserStore us = new UserStore();
+    	
+    	if (rs.isExhausted()){
+    		System.out.print("isExhausted");
+    		return us;
+    	} 
+    	
+    	String r_user = "";
+    	String r_email = "";
+    	String r_password = "";
+    	String r_subscribed = "";
+    	String r_image = "";
+    	int r_followers = 0;
+    	int r_following = 0;
+    	
+    	for (Row row : rs) {
+    		System.out.print("row!");
+    		r_user = row.getString("user");
+    		r_email = row.getString("email");
+    		r_password = row.getString("password");
+    		r_subscribed = row.getString("subscribed");
+    		r_image = row.getString("image");
+    		r_followers = row.getInt("followers");
+    		r_following = row.getInt("following");
+		}
+
+    	if ( passwordEncryptor.checkPassword(r_password, password) ) {
+    		return us;
+    	}
+    	
+		us.setEmail(r_email);
+		us.setUser(r_user);
+		us.setPassword(r_password);
+		us.setSubscribed(r_subscribed);
+		us.setImage(r_image);
+		us.setFollowers(r_followers);
+		us.setFollowing(r_following);
+
+    	return us;
+	}
+  
+	public boolean registerUser(UserStore us){
+     
+		// Java Simplified Encryption
+		// Jasypt 1.9.1
+		// http://www.jasypt.org/
+		// http://www.jasypt.org/api/jasypt/1.9.1/index.html
+		ConfigurablePasswordEncryptor passwordEncryptor = new ConfigurablePasswordEncryptor();
+		passwordEncryptor.setAlgorithm("SHA-1");
+		passwordEncryptor.setPlainDigest(true);
+		String encryptedPassword = passwordEncryptor.encryptPassword(us.getPassword());
+		
+	    Session session = cluster.connect("keyspace2");
+	
+	    us.setSubscribed("\""+us.getUser()+"\"");
+	    
+	    String query = ""
+	    + "INSERT INTO users (user,email,password,subscribed,followers,following,image) "
+	    + "VALUES ('"+us.getUser()+"','"+us.getEmail()+"','"+encryptedPassword+"','"+us.getSubscribed()+"',0,0,'') ";
+	    System.out.print(query);
+	    PreparedStatement statement = session.prepare(query);   
+	    BoundStatement boundStatement = new BoundStatement(statement);
+	    
+	    try {
+	    	session.execute(boundStatement);
+	    	System.out.println("Success Saving User!");
+	    	return true;
+	    } catch ( Exception e ) {
+	    	System.out.println("Failure Saving User!");
+	    	e.printStackTrace();
+	    }
+	    return false;
+	}
+}

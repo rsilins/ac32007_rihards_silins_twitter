@@ -1,0 +1,211 @@
+package com.test1.servlets;
+
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.HashMap;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Cookie;
+import java.net.URLDecoder;
+
+import com.datastax.driver.core.Cluster;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+
+import com.test1.lib.*;
+import com.test1.models.*;
+import com.test1.stores.*;
+
+/**
+ * Servlet implementation class User
+ */
+@WebServlet({ "/User", "/User/*" })
+public class User extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+    private Cluster cluster;
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public User() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+    public void init(ServletConfig config) throws ServletException {
+		// TODO Auto-generated method stub
+		cluster = CassandraHosts.getCluster();
+	}
+    
+    
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		response.getWriter().write("foobar");
+		/*
+		
+		//String args[]=Convertors.SplitRequestPath(request);
+		
+		UserModel um= new UserModel();
+		um.setCluster(cluster);
+		
+		LinkedList<TweetStore> tweetList;
+		
+		if ( request.getParameter("from")!= null ) {
+			tweetList = tm.getTweets(request.getParameter("from"));
+		} else {
+			tweetList = tm.getTweets();
+		}
+		
+		request.setAttribute("Tweets", tweetList); //Set a bean with the list in it
+		
+		if ( request.getParameter("api")!= null && request.getParameter("api").equals("true") ) {
+			RequestDispatcher rd = request.getRequestDispatcher("/views/Tweet/api_get.jsp"); 
+			rd.forward(request, response);
+		} else {
+			RequestDispatcher rd = request.getRequestDispatcher("/views/Tweet/view.jsp"); 
+			rd.forward(request, response);
+		}*/
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		if ( request.getPathInfo().equals("/add") ) {
+		
+			String post_username = request.getParameter("username");
+			String post_email = request.getParameter("email");
+			String post_password = request.getParameter("password");
+			
+			if ( post_username == null || post_username.isEmpty() ) {
+				response.setStatus(401); 
+				return;
+			}
+			
+			if ( post_email == null || post_email.isEmpty() ) {
+				response.setStatus(401); 
+				return;
+			}
+			
+			if ( post_password == null || post_password.isEmpty() ) {
+				response.setStatus(401); 
+				return;
+			}
+			
+			UserStore us = new UserStore();
+			us.setUser(post_username);
+			us.setEmail(post_email);
+			us.setPassword(post_password);
+			
+			UserModel um = new UserModel();
+			um.setCluster(cluster);
+			
+			if ( um.isEmailTaken(us.getEmail()) ) {
+				response.getWriter().write("email taken !");
+				return;
+			}
+			
+			if ( um.isUsernameTaken(us.getUser()) ) {
+				response.getWriter().write("username taken !");
+				return;
+			}
+			
+			um.registerUser(us);
+			
+			response.setStatus(200); 
+			response.getWriter().write("success!");
+					
+		} else if ( request.getPathInfo().equals("/login") ) {
+		
+			String post_email = request.getParameter("email");
+			String post_password = request.getParameter("password");
+			
+			if ( post_email == null || post_email.isEmpty() ) {
+				response.setStatus(401); 
+				return;
+			}
+			
+			if ( post_password == null || post_password.isEmpty() ) {
+				response.setStatus(401); 
+				return;
+			}
+			
+			UserModel um = new UserModel();
+			um.setCluster(cluster);
+			
+			UserStore us = um.login(post_email, post_password);
+			
+			if ( us.getUser() == null || us.getUser().isEmpty() ) {
+				
+				//RequestDispatcher rd = getServletContext().getRequestDispatcher("/login.html");
+	            //PrintWriter out= response.getWriter();
+	            //out.println("<font color=red>Either user name or password is wrong.</font>");
+	            //rd.include(request, response);
+				
+				response.getWriter().write("invalid login!");
+				return;
+			}
+			
+			System.out.print("OK-LETS LOG IN! #2");
+			
+			Cookie loginCookie = new Cookie("user",us.getUser());
+			//Cookie loginCookie = new Cookie("user",us.getUser());
+            //setting cookie to expiry in 30 mins
+            loginCookie.setMaxAge(30*60);
+            response.addCookie(loginCookie);
+            response.sendRedirect("/test1/Tweet");
+		}
+	}
+	
+	/**
+	 * @see HttpServlet#doPut(HttpServletRequest request, HttpServletResponse response)
+	 * 
+	 * Handles tweet (saving) put requests
+	 */
+	/*
+	protected void doPut(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		
+		// for some reason you can't get put attributes from getParameter()
+		// probably because PUT is deprecated
+		BufferedReader br = new BufferedReader(new InputStreamReader(request.getInputStream()));
+		String data = br.readLine();
+		
+	    String[] params = data.split("&");  
+	    Map<String, String> map = new HashMap<String, String>();  
+	    for (String param : params) {  
+	        String name = param.split("=")[0];  
+	        String value = param.split("=")[1];  
+	        map.put(name, value);  
+	    }  
+	    
+		//String spout = request.getParameter("spout");
+		String spout = map.get("spout");
+		spout = URLDecoder.decode(spout, "UTF-8");
+		
+		// TODO: User check
+		
+		if ( spout != null && spout.isEmpty() == false && spout.length() > 0 && spout.length() <= 140 ) {
+			
+			TweetStore ts = new TweetStore();
+			ts.setTweet(spout);
+			TweetModel tm= new TweetModel();
+			tm.setCluster(cluster);
+			
+			tm.saveTweet(ts);
+			response.setStatus(200); 
+			response.getWriter().write("true");
+			return;
+		}
+		response.setStatus(500); 
+		response.getWriter().write("false");
+		return;
+	}*/
+
+}

@@ -1,0 +1,43 @@
+package com.test1.stores;
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+public class TweetStore {
+	
+	String Id;
+	UUID Timeuuid;
+	String Tweet;
+	String User;
+	
+	public String getId(){
+		return Id;
+	}
+	public String getTweet(){
+		return Tweet;
+	}
+	public String getUser(){
+		return User;
+	}
+	public UUID getTimeuuid(){
+		return Timeuuid;
+	}
+	
+	public String getTweetTime(){
+		long time = getTimeFromUUID(this.uuid);
+	}
+	
+	public void setTweet(String Tweet){
+		this.Tweet=Tweet;
+	}
+	public void setUser(String User){
+		this.User=User;
+	}
+	public void setId(String Id){
+		this.Id=Id;
+	}
+	public void setTimeuuid(UUID Timeuuid){
+		this.Timeuuid=Timeuuid;
+	}
+	
+}

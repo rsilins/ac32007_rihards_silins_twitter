@@ -1,0 +1,36 @@
+package com.test1.stores;
+
+public class TweetStore {
+	
+	String Id;
+	String Timestamp;
+	String Tweet;
+	String User;
+	
+	public String getId(){
+		return Id;
+	}
+	public String getTweet(){
+		return Tweet;
+	}
+	public String getUser(){
+		return User;
+	}
+	public String getTimestamp(){
+		return Timestamp;
+	}
+	
+	public void setTweet(String Tweet){
+		this.Tweet=Tweet;
+	}
+	public void setUser(String User){
+		this.User=User;
+	}
+	public void setId(String Id){
+		this.Id=Id;
+	}
+	public void setTimestamp(String Timestamp){
+		this.Timestamp=Timestamp;
+	}
+	
+}

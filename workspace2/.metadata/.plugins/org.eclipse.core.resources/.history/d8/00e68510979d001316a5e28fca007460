@@ -1,0 +1,208 @@
+package com.test1.servlets;
+
+import java.io.IOException;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Cookie;
+
+import com.datastax.driver.core.Cluster;
+
+import com.test1.lib.*;
+import com.test1.models.*;
+import com.test1.stores.*;
+
+/**
+ * Servlet implementation class User
+ * 
+ * Meant for handling all requests relating to user
+ */
+@WebServlet({ "/User", "/User/*" })
+public class User extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+    private Cluster cluster;
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public User() {
+        super();
+    }
+    
+    public void init(ServletConfig config) throws ServletException {
+		cluster = CassandraHosts.getCluster();
+	}
+    
+	/**
+	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		
+		Authentication auth = new Authentication();
+		if ( !auth.isLoggedIn(request) ) {
+			response.setStatus(500); 
+			return;
+		}
+		
+		if ( request.getPathInfo() == null ) {
+			// do nothing
+		} else if ( request.getPathInfo().equals("/logout") ) { // LOGOUT REQUEST
+			response = auth.logout(response);
+			response.sendRedirect("/test1/User/login"); // REDIR TO LOGIN
+			return;
+			
+		} else if ( request.getPathInfo().equals("/subscribe") ) { // SUBSCRIBE REQUEST
+			UserStore logged_in_user = new UserStore();	
+			UserModel um = new UserModel();
+			um.setCluster(cluster);
+			logged_in_user = um.getUserFromUsername(auth.getLoggedInUser(request));
+
+			String user = request.getParameter("user"); // user to sub to
+			
+			um.subscribeToUser(user, logged_in_user);
+			response.sendRedirect("/test1/Tweet/"); // REDIR TO LOGIN
+			return;
+		}
+		
+		// USE CORRECT VIEW
+		RequestDispatcher rd = request.getRequestDispatcher("/views/User/add.jsp"); 
+		rd.forward(request, response);
+		return;
+	}
+
+	/**
+	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		if ( request.getPathInfo() == null ) {
+			// NO DEFAULT
+			// TODO: LIST ALL USERS
+		} else if ( request.getPathInfo().equals("/add") ) { // REGISTER REQUEST
+		
+			// GET FROM REQUEST
+			String post_username = request.getParameter("username");
+			String post_email = request.getParameter("email");
+			String post_password = request.getParameter("password");
+			
+			// DEFAULT ERROR INFO
+			boolean invalid_input = false;
+			String error_message = "Something went wrong! Please try again! Username can only consits of a-z, A-Z and 0-9";
+			
+			// VALIDATE
+			if ( post_username == null || post_username.isEmpty() || !post_username.matches("[a-zA-Z0-9]+") ) {
+				invalid_input = true;
+			}
+			if ( post_email == null || post_email.isEmpty() ) {
+				invalid_input = true;
+			}
+			if ( post_password == null || post_password.isEmpty() ) {
+				invalid_input = true;
+			}
+			
+			UserStore us = new UserStore();
+			us.setUser(post_username);
+			us.setEmail(post_email);
+			us.setPassword(post_password);
+			
+			UserModel um = new UserModel();
+			um.setCluster(cluster);
+			
+			// VALIDATE
+			if ( um.isEmailTaken(us.getEmail()) ) {
+				error_message = "Email is already taken!";
+				invalid_input = true;
+			}
+			
+			if ( um.isUsernameTaken(us.getUser()) ) {
+				error_message = "Username is already taken!";
+				invalid_input = true;
+			}
+			
+			// CHECK IF EVERYTHING IS VALID
+			if(invalid_input) {
+				// PASS ERROR INFO
+				request.setAttribute("error_message", error_message); 
+				request.setAttribute("invalid_input", invalid_input); 
+				// USE CORRECT VIEW
+				RequestDispatcher rd = request.getRequestDispatcher("/views/User/add.jsp"); 
+				rd.forward(request, response);
+				return;
+			}
+			
+			um.registerUser(us); // REGISTER
+			
+			// AFTER REGISTER - LOGIN USER
+			Cookie loginCookie = new Cookie("user",us.getUser());
+            loginCookie.setMaxAge(30*60); // 30 MIN
+            loginCookie.setPath("/");
+            response.addCookie(loginCookie);
+			
+			response.sendRedirect("/test1/Tweet"); // REDIRECT DIRECTLY TO HIS FEED
+			return;
+
+		} else if ( request.getPathInfo().equals("/login") ) { // LOGIN REQUEST
+				
+			String post_email = request.getParameter("email");
+			String post_password = request.getParameter("password");
+			
+			// DEFAULT ERROR INFO
+			boolean invalid_input = false;
+			String error_message = "Something went wrong! Please try again!";
+			
+			if ( post_email == null || post_email.isEmpty() ) {
+				RequestDispatcher rd = request.getRequestDispatcher("/views/User/add.jsp"); 
+				rd.forward(request, response);
+				return;
+			}
+			
+			if ( post_password == null || post_password.isEmpty() ) {
+				RequestDispatcher rd = request.getRequestDispatcher("/views/User/add.jsp"); 
+				rd.forward(request, response);
+				return;
+			}
+			
+			UserModel um = new UserModel();
+			um.setCluster(cluster);
+			
+			UserStore us = um.login(post_email, post_password);
+			
+			// CHECK IF MAYBE BAD LOGIN
+			if ( us.getUser() == null || us.getUser().isEmpty() ) {
+				invalid_input = true;
+				error_message = "Invalid login!";
+			}
+			
+			if (invalid_input) {
+				// PASS ERROR INFO
+				request.setAttribute("error_message", error_message); 
+				request.setAttribute("invalid_input", invalid_input); 
+				
+				RequestDispatcher rd = request.getRequestDispatcher("/views/User/add.jsp"); 
+				rd.forward(request, response);
+				return;
+			}
+			
+			// SUCCESSFULL LOGIN
+			
+			Cookie loginCookie = new Cookie("user",us.getUser());
+            loginCookie.setMaxAge(30*60); // 30 MIN
+            loginCookie.setPath("/");
+            response.addCookie(loginCookie);
+            response.sendRedirect("/test1/Tweet"); // REDIRECT TO HIS FEED
+            return;
+            
+		} else if ( request.getPathInfo().equals("/logout") ) { // LOGOUT REQUEST
+			// DESTROY COOKIES
+			Cookie cookie = new Cookie("user", "");
+			cookie.setMaxAge(0); 
+			cookie.setPath("/");
+			response.addCookie(cookie);
+			response.sendRedirect("/test1/User/login"); // REDIR TO LOGIN
+			return;
+		}
+	}
+}

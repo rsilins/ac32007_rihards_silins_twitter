@@ -1,0 +1,40 @@
+<%@ page language="java" contentType="json; charset=utf-8" pageEncoding="utf-8"%><%@ page import="com.test1.stores.*" %><%@ 
+page import="java.util.*" %>[<%
+System.out.println("API GET!");
+List<TweetStore> lTweet = (List<TweetStore>)request.getAttribute("Tweets");
+if (lTweet!=null){
+	Iterator<TweetStore> iterator;
+	iterator = lTweet.iterator();
+	boolean first = true;
+	while (iterator.hasNext()){
+		TweetStore ts = (TweetStore)iterator.next();
+		
+		if ( first ) {
+			first = false;
+		} else {
+			%>,<%
+		}
+		
+		%>{
+	"uuid":"<%=ts.getTimeuuid()%>"
+	"user":"<%=ts.getUser() %>",
+	"message":"<%=ts.getTweet() %>",
+	"tweet-time-js-readable":"<%=ts.getTweetTimeJSReadable()%>",
+	"tweet-time":"<%=ts.getTweetTime()%>"
+	
+	
+		<div class="panel panel-default">
+			<div class="panel-body">
+				<h4><a href="/test1/Tweet/<%=ts.getUser() %>" ><%=ts.getTweet() %></a></h4>
+				<span class="help-block">
+					by <span class="user"><%=ts.getUser() %></span> ~ 
+					<span class="tweetTime" data-tweet-time="<%=ts.getTweetTimeJSReadable()%>"><%=ts.getTweetTime()%></span>
+				</span>
+			</div>
+		</div>
+		
+}
+<%
+		}
+}
+%>]

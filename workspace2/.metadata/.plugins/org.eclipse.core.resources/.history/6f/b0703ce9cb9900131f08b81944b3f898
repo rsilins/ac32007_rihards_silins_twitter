@@ -1,0 +1,29 @@
+package com.test1.stores;
+
+public class UserStore {
+	
+	String Email;
+	String User;
+	String Password;
+	
+	public String getEmail(){
+		return Email;
+	}
+	public String getUser(){
+		return User;
+	}
+	public String getPassword(){
+		return Password;
+	}
+	
+	public void setEmail(String Email){
+		this.Email=Email;
+	}
+	public void setUser(String User){
+		this.User=User;
+	}
+	public void setPassword(String Password){
+		this.Password=Password;
+	}
+	
+}

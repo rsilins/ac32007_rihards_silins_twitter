@@ -1,0 +1,30 @@
+
+
+/* ==========================================================================
+   Author's custom styles
+   ========================================================================== */
+
+html,body {
+	background-image: url(/test1/images/tweed.png);
+}
+
+.banner {
+	background: #eee url(/test1/images/header-01.jpg) no-repeat;
+	color: #fff;
+	text-shadow: 1px 1px 1px #000;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

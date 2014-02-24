@@ -1,0 +1,174 @@
+package com.test1.models;
+
+/*
+ * Expects a cassandra columnfamily defined as
+ * use keyspace2;
+  CREATE TABLE Tweets (
+  user varchar,
+  interaction_time timeuuid,
+   tweet varchar,
+   PRIMARY KEY (user,interaction_time)
+  ) WITH CLUSTERING ORDER BY (interaction_time DESC);
+ * To manually generate a UUID use:
+ * http://www.famkruithof.net/uuid/uuidgen
+ * 
+ *   CREATE TABLE keyspace2.tweets (
+  	  id uuid,
+  	    timestamp timestamp,
+  user varchar,
+   tweet varchar,
+   PRIMARY KEY (user,id, timestamp)
+  ) WITH CLUSTERING ORDER BY (id DESC, timestamp DESC);
+ * 
+ * 
+ */
+
+
+import java.util.LinkedList;
+
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.querybuilder.*;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.utils.UUIDs;
+import me.prettyprint.cassandra.utils.TimeUUIDUtils;
+
+import java.sql.Timestamp;
+import java.util.Date;
+
+import com.eaio.uuid.UUID;
+
+import com.test1.lib.*;
+import com.test1.stores.TweetStore;
+public class TweetModel {
+	Cluster cluster;
+	public TweetModel(){
+		
+	}
+
+	public void setCluster(Cluster cluster){
+		this.cluster=cluster;
+	}
+	
+	public LinkedList<TweetStore> getTweets() {
+		LinkedList<TweetStore> tweetList = new LinkedList<TweetStore>();
+		Session session = cluster.connect("keyspace2");
+
+		PreparedStatement statement = session.prepare("SELECT * from tweets");
+		BoundStatement boundStatement = new BoundStatement(statement);
+		ResultSet rs = session.execute(boundStatement);
+		if (rs.isExhausted()) {
+			System.out.println("No Tweets returned");
+		} else {
+			for (Row row : rs) {
+				TweetStore ts = new TweetStore();
+				ts.setTweet(row.getString("tweet"));
+				ts.setUser(row.getString("user"));
+				ts.setId(row.getUUID("id").toString());
+				//ts.setId(row.getString("id"));
+				//ts.setTimestamp(row.getString("timestamp"));
+				tweetList.add(ts);
+			}
+		}
+		session.close();
+		return tweetList;
+	}
+	
+	public boolean saveTweet(TweetStore ts){
+		
+		Session session = cluster.connect("keyspace2");
+
+		UUID u = new UUID();
+		
+		String query = ""
+		+ "INSERT INTO tweets (id,user,tweet) "
+		+ "VALUES ("+u.toString()+",'rsilins','"+ts.getTweet()+"') ";
+		PreparedStatement statement = session.prepare(query);		
+		BoundStatement boundStatement = new BoundStatement(statement);
+		
+		try {
+		
+			ResultSet rs = session.execute(boundStatement);
+			System.out.println("Success!");
+			return true;
+				
+		} catch ( Exception e ) {
+			System.out.println("Failure!!");
+			e.printStackTrace();
+			
+		}
+		return false;
+		
+		/*if (rs.isExhausted()) {
+			System.out.println("No Tweets returned");
+		} else {
+			for (Row row : rs) {
+				TweetStore ts = new TweetStore();
+				ts.setTweet(row.getString("tweet"));
+				ts.setUser(row.getString("user"));
+				ts.setId(row.getString("id"));
+				ts.setTimestamp(row.getString("timestamp"));
+				tweetList.add(ts);
+			}
+		}*/
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		/*
+		try {
+			System.out.println("insert executed");
+			
+			//TimeUUIDUtils tuuids = new TimeUUIDUtils();
+			//String interaction_time = tuuids.getTimeUUID().toString();
+			
+			//String interaction_time = UUIDs.timeBased().toString();
+
+			UUID u = new UUID();
+			
+			//u.toString();
+			
+			//UUID.toString();
+			
+			java.util.Date date= new java.util.Date();
+			
+	        Insert insert = QueryBuilder.insertInto("keyspace2", "tweets")
+	                                    .value("user", ts.getUser())
+	                                    //.value("interaction_time", interaction_time)
+	                                    .value("id", u)
+	                                    .value("timestamp", new Timestamp(date.getTime()))
+	                                    .value("tweet", ts.getTweet());
+	        System.out.println(insert.toString());
+	        ResultSet result = session.execute(insert.toString());
+	        System.out.println(result);
+	        session.close();
+	        return true;
+	    } catch (Exception ex) {
+	        ex.printStackTrace();
+	    }
+	    */
+		//return false;
+	}
+}

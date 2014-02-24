@@ -1,0 +1,205 @@
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%><%@ page import="com.test1.stores.*" %><%@ 
+page import="java.util.*" %><!DOCTYPE html>
+<!--[if lt IE 7]>			<html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>				 <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>				 <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+		<head>
+				<meta charset="utf-8">
+				<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+				<title>Vomitorium</title>
+				<meta name="description" content="">
+				<meta name="viewport" content="width=device-width">
+
+				<link rel="stylesheet" href="/test1/css/bootstrap.min.css">
+				<style>
+						body {
+								padding-top: 50px;
+								padding-bottom: 20px;
+						}
+				</style>
+				<link rel="stylesheet" href="/test1/css/bootstrap-theme.min.css">
+				<link rel="stylesheet" href="/test1/css/main.css">
+
+				<script src="/test1/js/libs/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+		</head>
+		<body>
+				<!--[if lt IE 7]>
+						<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+				<![endif]-->
+	<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="container">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="/test1/Tweet/">Vomitorium</a>
+				</div>
+				<div class="navbar-collapse collapse">
+					<ul class="nav navbar-nav">
+						<%/*
+						<li class="active"><a href="#">Home</a></li>
+						<%/*
+						<li><a href="#about">About</a></li>
+						<li><a href="#contact">Contact</a></li>
+						<li class="dropdown">
+							<a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<li><a href="#">Action</a></li>
+								<li><a href="#">Another action</a></li>
+								<li><a href="#">Something else here</a></li>
+								<li class="divider"></li>
+								<li class="dropdown-header">Nav header</li>
+								<li><a href="#">Separated link</a></li>
+								<li><a href="#">One more separated link</a></li>
+							</ul>
+						</li>
+						*/ %>
+					</ul>
+					<%
+					if((Boolean)request.getAttribute("logged_in")) {
+						UserStore logged_in_user = (UserStore)request.getAttribute("logged_in_user");
+						%>
+						<h4 class="navbar-right" style="color:white">
+							Hi <%=logged_in_user.getUser() %>!
+							&nbsp;|&nbsp;<a href="/test1/User/logout">Logout</a>
+						</h4>
+						<%
+					} else {
+						%>
+						<form class="navbar-form navbar-right" method="post" action="/test1/User/login">
+							<div class="form-group">
+								<input type="email" placeholder="Email" name="email" class="form-control" required>
+							</div>
+							<div class="form-group">
+								<input type="password" placeholder="Password" name="password" class="form-control" required>
+							</div>
+							<button type="submit" class="btn btn-success">Sign in</button>
+						</form>
+						<%
+					}
+					%>
+				</div><!--/.navbar-collapse -->
+			</div>
+		</div>
+		<div class="container">
+		<!-- Main jumbotron for a primary marketing message or call to action -->
+		<div class="jumbotron banner">
+			<div class="container">
+				<div class="row">
+					<%
+					if((Boolean)request.getAttribute("logged_in") == false) {
+						UserStore logged_in_user = (UserStore)request.getAttribute("logged_in_user");
+						%>
+						<div class="col-lg-3">
+							<h3>Register</h3>
+							<form method="post" action="/test1/User/add">
+							<fieldset>
+								<div style="margin-bottom: 10px">
+									 <input type="text" class="form-control" placeholder="username" name="username" required/>
+								</div>
+								<div style="margin-bottom: 10px">
+									 <input type="email" class="form-control" placeholder="email" name="email" required/>
+								</div>
+								<div style="margin-bottom: 5px">
+									 <input type="password" class="form-control" placeholder="password" name="password" required/>
+								</div>
+								<div>
+									 <input type="submit" value="Register" class="btn btn-primary" />
+								</div>
+							</fieldset>
+							</form>
+						</div>
+						<%
+					}
+					%>
+
+					<div class="col-lg-6">
+						<h2>Welcome all!</h2>
+						<p>Ever wanted to vent every single thought out somewhere in naive hope someone is listening? You've come to the right place!</p> 
+						<%/*<p><a class="btn btn-primary btn-lg">Learn more &raquo;</a></p>*/%>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="container">
+			<%
+			if((Boolean)request.getAttribute("logged_in")) {
+			%>
+			<div class="row">
+				<div class="col-lg-3 panel panel-default sidebar">
+					<div class="panel-heading"><h4>Empart thy knowledge!</h4></div>
+					<br/>
+					<form class="easy-form-spout" method="post">
+						<fieldset>
+							<textarea name="spout" class="form-control easy-form-spout-textarea" placeholder="Type something…"></textarea>
+							<span class="help-block">140</span>
+							<img style="display:none" class="easy-form-spout-loader" src="/test1/images/loading.gif" alt="Loading" />
+							<button type="submit" class="btn btn-primary easy-form-spout-btn">Spout</button>
+						</fieldset>
+					</form>
+					<h2>Heading</h2>
+					<p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+					<p><a class="btn btn-default" href="#">View details &raquo;</a></p>
+				</div>
+				<div class="col-lg-9 tweet-list-continer">
+					<%
+					System.out.println("In render!");
+					List<TweetStore> lTweet = (List<TweetStore>)request.getAttribute("Tweets");
+					if (lTweet==null){
+						%>
+						<p>No Tweet found</p>
+						<% 
+					}else{
+						Iterator<TweetStore> iterator;
+						iterator = lTweet.iterator();		 
+						while (iterator.hasNext()){
+							TweetStore ts = (TweetStore)iterator.next();
+							%>
+							<div class="panel panel-default" data-timeuuid="<%=ts.getTimeuuid() %>">
+								<div class="panel-body">
+									<h4><a href="/test1/Tweet/<%=ts.getUser() %>" ><%=ts.getTweet() %></a></h4>
+									<span class="help-block">
+										by <span class="user"><%=ts.getUser() %></span> ~ 
+										<span class="tweetTime" data-tweet-time="<%=ts.getTweetTimeJSReadable()%>"><%=ts.getTweetTime()%></span>
+										<form method="delete" action="/test1/Tweet/delete" class="delete-tweet-form">
+											<input type="hidden" value="<%=ts.getTimeuuid() %>" name="tweet_uuid" />
+											<input type="submit" value="delete" class="delete-tweet-btn" />
+										</form>
+									</span>
+								</div>
+							</div>
+							<%
+							}
+					}
+					%>
+				</div>
+			</div>
+			
+			<hr>	
+		<%
+		}
+		%>
+		<footer>
+		<p>Created by Rihards Silins</p>
+		</footer>
+	</div> <!-- /container -->
+	<input type="hidden" id="viewing_user_feed" name="viewing_user_feed" value="<%=(String)request.getAttribute("viewing_user_tweets_username")%>" />
+	<input type="hidden" id="viewing_specific_tweet" name="viewing_specific_tweet" value="<%=(String)request.getAttribute("viewing_specific_tweet_uuid")%>" />
+	<%
+	if((Boolean)request.getAttribute("logged_in") == false) {
+		UserStore logged_in_user = (UserStore)request.getAttribute("logged_in_user");
+		%>
+		<input type="hidden" id="logged_in_user" name="logged_in_user" value="<%=(String)request.getAttribute("viewing_specific_tweet_uuid")%>" />
+		<%
+	}
+	%>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+	<script>window.jQuery || document.write('<script src="/test1/js/libs/jquery-1.10.1.min.js"><\/script>')</script>
+	<script src="/test1/js/libs/bootstrap.min.js"></script>
+	<script src="/test1/js/libs/date.format.js"></script>
+	<script src="/test1/js/main.js"></script>
+	</body>
+</html>
